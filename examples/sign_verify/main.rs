@@ -4,6 +4,9 @@ extern crate cose;
 #[macro_use(defer)]
 extern crate scopeguard;
 
+extern crate rustc_serialize as serialize;
+use serialize::hex::FromHex;
+
 mod nss;
 mod test_nss;
 mod test_setup;
@@ -11,6 +14,7 @@ mod util_test;
 
 use util_test::{sign, verify_signature};
 use test_setup as test;
+use std::env;
 use std::str::FromStr;
 use cose::{CoseError, SignatureAlgorithm};
 
@@ -239,7 +243,13 @@ fn test_cose_sign_verify_two_signatures_tampered_signature() {
 }
 
 fn main() {
-    // Basic NSS exmaple usage.
+
+    let args: Vec<String> = env::args().collect();
+    if args.len() > 1 {
+        cli(args)
+    }
+
+    // Basic NSS example usage.
     test_nss::test_nss_sign_verify();
     test_nss::test_nss_sign_verify_different_payload();
     test_nss::test_nss_sign_verify_wrong_cert();
@@ -256,4 +266,25 @@ fn main() {
     test_cose_sign_verify_modified_payload();
     test_cose_verify_xpi_signature();
     test_cose_sign_verify();
+}
+
+fn cli(args: Vec<String>) {
+    let payload = args.iter().nth(1).expect("Missing first arg: payload.")
+        .from_hex().expect("Failed to decode payload from hex string.");
+    let signature = args.iter().nth(2).expect("Missing second arg: signature.")
+        .from_hex().expect("Failed to decode signature from hex string.");
+
+    // println!("payload: {:#?}\nsig: {:#?}", payload, signature);
+
+    test::setup();  // might not be necessary
+
+    match verify_signature(&payload, signature) {
+        Ok(_) => {
+            println!("sig verification OK!");
+        },
+        err @ Err(_) => {
+            println!("sig verification failed {:#?}", err);
+            ::std::process::exit(2)
+        }
+    }
 }
