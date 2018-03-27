@@ -268,23 +268,33 @@ fn main() {
     test_cose_sign_verify();
 }
 
+// hack to test with go-cose
 fn cli(args: Vec<String>) {
-    let payload = args.iter().nth(1).expect("Missing first arg: payload.")
-        .from_hex().expect("Failed to decode payload from hex string.");
-    let signature = args.iter().nth(2).expect("Missing second arg: signature.")
-        .from_hex().expect("Failed to decode signature from hex string.");
-
-    // println!("payload: {:#?}\nsig: {:#?}", payload, signature);
+    let action = args.iter().nth(1).expect("Missing first arg: action.");
 
     test::setup();  // might not be necessary
 
-    match verify_signature(&payload, signature) {
-        Ok(_) => {
-            println!("sig verification OK!");
-        },
-        err @ Err(_) => {
-            println!("sig verification failed {:#?}", err);
-            ::std::process::exit(2)
+    if action == "sign" {
+        println!("'sign' not implemented.");
+        ::std::process::exit(2)
+    } else if action == "verify" {
+        let payload = args.iter().nth(2).expect("Missing second arg: payload.")
+            .from_hex().expect("Failed to decode payload from hex string.");
+        let signature = args.iter().nth(3).expect("Missing third arg: signature.")
+            .from_hex().expect("Failed to decode signature from hex string.");
+
+        match verify_signature(&payload, signature) {
+            Ok(_) => {
+                println!("sig OK!");
+                ::std::process::exit(0)
+            },
+            err @ Err(_) => {
+                println!("sig verification failed {:#?}", err);
+                ::std::process::exit(2)
+            }
         }
+    } else {
+        println!("action is not 'sign' or 'verify'.");
+        ::std::process::exit(2)
     }
 }
